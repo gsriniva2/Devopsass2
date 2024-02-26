@@ -1,0 +1,72 @@
+Assignment 2:
+AWS EKS clusters come with default AWS VPC CNI plugin that provides some excellent features like getting an address 
+within the VPC subnet range. One limitation of AWS CNI comes from the number of IP addresses and ENI that you can 
+assign to the single instance. 
+Refer to the (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-eni.html#AvailableIpPerENI) which shows 
+that limit.
+In this assignment, to replace AWS VPC CNI (EKS default) with Calico for networking layer. The new EKS cluster should 
+have a mixture of spot and on demand node group. Deploy a sample service to illustrate that the cluster is using Calico 
+network layer instead of EKS VPC default.
+Delivery Outcome:
+-Ideally the candidate should have installed Calico networking layer in the kube-system namespace (pods: calico-kubecontroller, calico-node etc). 
+-Upon inspection (kubectl get pods –all-namespaces), only kubernetes system pods should be running on AWS VPC private 
+IP while the rest of the pods should be running on Calico network (different IP range).
+
+
+1)Install Calico in the Kubernetes Cluster:
+
+Deploy Calico using Kubernetes manifests. You can use the official Calico manifests available on their GitHub repository.
+
+kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+
+This installs Calico in the kube-system namespace with components like calico-kube-controllers and calico-node.
+
+2)Create EKS Cluster with Spot and On-Demand Node Groups:
+
+Use the AWS CLI or AWS Management Console to create an EKS cluster with both spot and on-demand node groups.
+
+eksctl create cluster --name your-cluster-name --node-type t3.small --nodes 2 --nodes-min 1 --nodes-max 3 --managed
+
+Modify the above command to include spot instances in your node groups. Refer to the eksctl documentation for more details.
+
+3)Deploy a Sample Service:
+
+  Deploy a sample application or service to illustrate that the cluster is using Calico for networking.
+
+# sample-app.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: sample-app
+  template:
+    metadata:
+      labels:
+        app: sample-app
+    spec:
+      containers:
+      - name: sample-app
+        image: your/sample-app:latest
+
+kubectl apply -f sample-app.yaml
+
+4) Verify Pods Running on Calico Network:
+
+Use the following command to check the status of pods in all namespaces:
+
+kubectl get pods --all-namespaces
+
+Pods from the kube-system namespace should be running on AWS VPC private IP, while pods from other namespaces (like the sample-app) should be running on the Calico network with a different IP range.
+This verification ensures that Calico has taken over the networking layer for your EKS cluster.
+
+Release Notes:
+
+The installation of Calico is based on the official Calico manifests and documentation.
+The eksctl command may need additional parameters based on your specific requirements.
+The sample-app.yaml is a placeholder, and you should replace it with your actual application or service manifest.
+Ensure that you thoroughly test these changes in a non-production environment before applying them to a production EKS cluster. Also, keep in mind any potential network policy changes that may be required when switching from AWS VPC CNI to Calico.
+Reference IDLE: Visual studio.
